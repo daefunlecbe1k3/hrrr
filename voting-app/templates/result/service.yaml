@@ -1,0 +1,33 @@
+# Internal service for cluster communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "voting-app.fullname" . }}-result
+  labels:
+    {{- include "voting-app.labels" . | nindent 4 }}
+    app: result
+spec:
+  selector:
+    app: result
+  ports:
+  - name: http
+    port: 4000
+    targetPort: 4000
+  type: ClusterIP
+---
+# External service for access (port 8081 as requested)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "voting-app.fullname" . }}-result-external
+  labels:
+    {{- include "voting-app.labels" . | nindent 4 }}
+    app: result
+spec:
+  selector:
+    app: result
+  ports:
+  - name: http
+    port: {{ .Values.result.service.port }}
+    targetPort: 4000
+  type: {{ .Values.result.service.type }}

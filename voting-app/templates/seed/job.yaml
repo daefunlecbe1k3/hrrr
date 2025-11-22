@@ -1,0 +1,89 @@
+{{- if .Values.seed.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "voting-app.fullname" . }}-seed-data
+  labels:
+    {{- include "voting-app.labels" . | nindent 4 }}
+    app: seed-data
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      labels:
+        app: seed-data
+        {{- include "voting-app.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      restartPolicy: Never
+      initContainers:
+      - name: wait-for-all-services
+        image: busybox:1.35
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for all services to be ready..."
+          
+          # Wait for Redis - use netcat to check port connectivity
+          echo "Checking Redis..."
+          while ! nc -z redis 6379; do
+            echo "Redis not ready on redis:6379, waiting..."
+            sleep 5
+          done
+          echo "✓ Redis is ready!"
+          
+          # Wait for PostgreSQL
+          echo "Checking PostgreSQL..."
+          while ! nc -z db 5432; do
+            echo "PostgreSQL not ready on db:5432, waiting..."
+            sleep 5
+          done
+          echo "✓ PostgreSQL is ready!"
+          
+          # Wait for Vote service
+          echo "Checking Vote service..."
+          while ! wget -q --spider --timeout=2 http://voting-app-vote:80; do
+            echo "Vote service not ready on voting-app-vote:80, waiting..."
+            sleep 5
+          done
+          echo "✓ Vote service is ready!"
+          
+          echo "All services are ready for seeding!"
+        resources:
+          limits:
+            memory: "16Mi"
+            cpu: "50m"
+          requests:
+            memory: "8Mi"
+            cpu: "10m"
+      containers:
+      - name: seed-data
+        image: "{{ .Values.seed.image.repository }}:{{ .Values.seed.image.tag }}"
+        imagePullPolicy: {{ .Values.seed.image.pullPolicy }}
+        env:
+        - name: VOTE_SERVICE_URL
+          value: "http://voting-app-vote:80"
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "200m"
+          requests:
+            memory: "32Mi"
+            cpu: "100m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+{{- end }}

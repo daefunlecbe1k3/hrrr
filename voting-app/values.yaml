@@ -1,0 +1,142 @@
+# Default values for voting-app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  imagePullSecrets: []
+  storageClass: "local-path"
+# PostgreSQL configuration
+postgresql:
+  enabled: false  # We'll use our own StatefulSet
+  # But you can set to true to use Bitnami PostgreSQL
+
+# Redis configuration  
+redis:
+  enabled: false  # We'll use our own StatefulSet
+
+vote:
+  replicaCount: 2
+  image:
+    repository: abdallahelaraby/devops-vote
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8080
+    targetPort: 80
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "500m"
+    requests:
+      memory: "64Mi"
+      cpu: "250m"
+
+# Result service
+result:
+  replicaCount: 1
+  image:
+    repository: abdallahelaraby/devops-result
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8081
+    targetPort: 4000
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "300m"
+    requests:
+      memory: "64Mi"
+      cpu: "100m"
+
+# Worker service
+worker:
+  replicaCount: 1
+  image:
+    repository: abdallahelaraby/devops-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "200m"
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+
+# Seed data job
+seed:
+  image:
+    repository: abdallahelaraby/devops-seed-data
+    tag: latest
+    pullPolicy: IfNotPresent
+  enabled: true
+
+# Database configurations
+postgres:
+  enabled: true
+  image: postgres:15-alpine
+  database: postgres
+  username: postgres
+  password: postgres
+  storage: 1Gi
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  storage: 1Gi
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+    requests:
+      memory: "128Mi"
+      cpu: "250m"
+
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
