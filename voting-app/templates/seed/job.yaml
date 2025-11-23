@@ -53,7 +53,7 @@ spec:
           
           # Wait for Vote service
           echo "Checking Vote service..."
-          while ! wget -q --spider --timeout=2 http://voting-app-vote:80; do
+          while ! wget -q --spider --timeout=2 http://{{ include "voting-app.fullname" . }}-vote:80; do
             echo "Vote service not ready on voting-app-vote:80, waiting..."
             sleep 5
           done
@@ -73,7 +73,7 @@ spec:
         imagePullPolicy: {{ .Values.seed.image.pullPolicy }}
         env:
         - name: VOTE_SERVICE_URL
-          value: "http://voting-app-vote:80"
+          value: "http://{{ include "voting-app.fullname" . }}-vote:80"
         resources:
           limits:
             memory: "64Mi"
