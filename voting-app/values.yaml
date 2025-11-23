@@ -4,7 +4,7 @@
 
 global:
   imagePullSecrets: []
-  storageClass: "local-path"
+  storageClass: "gp2"
 # PostgreSQL configuration
 postgresql:
   enabled: false  # We'll use our own StatefulSet
